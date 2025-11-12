@@ -26,5 +26,3 @@ esempio di formato json:
         tipo: "contatto_porta",
         valore: (boolean)
     }
-
-bozza non so nemmeno se e' corretto sto formato di json, da correggere se ci sono eventuali cambiamenti.v
