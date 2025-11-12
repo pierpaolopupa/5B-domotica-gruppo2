@@ -8,6 +8,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -23,8 +26,18 @@ public class Gui extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        Image bgImage = new Image(
+                getClass().getResource("/images/serenyaLogo.png").toExternalForm(),
+                600, 350, false, true
+        );
+
+        ImageView bgView = new ImageView(bgImage);
+        bgView.setFitWidth(600);
+        bgView.setFitHeight(350);
+        bgView.setPreserveRatio(false);
+
         titleLabel = new Label("SERENYA");
-        titleLabel.setTextFill(Color.web("#55C1FF"));
+        titleLabel.setTextFill(Color.web("#FFFF"));
         titleLabel.setFont(Font.font("Segoe UI Light", 64));
 
         progressBar = new ProgressBar(0);
@@ -35,9 +48,11 @@ public class Gui extends Application {
         progressLabel.setTextFill(Color.WHITE);
         progressLabel.setFont(Font.font("Segoe UI", 14));
 
-        VBox root = new VBox(25, titleLabel, progressBar, progressLabel);
+        VBox contentBox = new VBox(25, titleLabel, progressBar, progressLabel);
+        contentBox.setAlignment(Pos.CENTER);
+
+        StackPane root = new StackPane(bgView, contentBox);
         root.setAlignment(Pos.CENTER);
-        root.setStyle("-fx-background-color: linear-gradient(to bottom, #0F2027, #203A43, #2C5364);");
 
         Scene scene = new Scene(root, 600, 350);
         primaryStage.initStyle(StageStyle.UNDECORATED);
@@ -98,13 +113,37 @@ public class Gui extends Application {
 
     private void showMainApp() {
         Stage mainStage = new Stage();
+
+        Image bgImage = new Image(
+                getClass().getResource("/images/sfondoBase.png").toExternalForm()
+        );
+        ImageView bgView = new ImageView(bgImage);
+        bgView.setPreserveRatio(false);
+        bgView.setSmooth(true);
+
         Label mainLabel = new Label("Benvenuto in SERENYA!");
         mainLabel.setFont(Font.font("Segoe UI", 28));
-        VBox root = new VBox(mainLabel);
+        mainLabel.setTextFill(Color.web("#E0F7FF"));
+
+        Label subLabel = new Label("Sistema Multiclient / Multiserver attivo");
+        subLabel.setFont(Font.font("Segoe UI", 16));
+        subLabel.setTextFill(Color.web("#B0D8FF"));
+
+        VBox content = new VBox(10, mainLabel, subLabel);
+        content.setAlignment(Pos.CENTER);
+
+        StackPane root = new StackPane(bgView, content);
         root.setAlignment(Pos.CENTER);
-        Scene scene = new Scene(root, 800, 500);
+
+        Scene scene = new Scene(root, 1280, 800);
+
+        bgView.fitWidthProperty().bind(scene.widthProperty());
+        bgView.fitHeightProperty().bind(scene.heightProperty());
+
         mainStage.setScene(scene);
         mainStage.setTitle("SERENYA - Sistema Multiclient/Multiserver");
+        mainStage.setMinWidth(900);
+        mainStage.setMinHeight(600);
         mainStage.show();
     }
 }
