@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 
-public class AutoClient {
+public class Client {
     private static final int UDP_PORT = 9999;
     private static final int TCP_PORT = 6789;
 
