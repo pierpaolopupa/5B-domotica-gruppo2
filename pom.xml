@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  
+
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>it.gruppo2b</groupId>
@@ -29,17 +29,24 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Log4j 3-->
+    <!-- Log4j 3 -->
     <dependency>
-    	<groupId>org.apache.logging.log4j</groupId>
-    	<artifactId>log4j-api</artifactId>
-    	<version>3.0.0-alpha1</version>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>3.0.0-alpha1</version>
     </dependency>
 
     <dependency>
-    	<groupId>org.apache.logging.log4j</groupId>
-    	<artifactId>log4j-core</artifactId>
-    	<version>3.0.0-alpha1</version>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>3.0.0-alpha1</version>
+    </dependency>
+
+    <!-- ✅ Libreria JSON -->
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>20231013</version>
     </dependency>
 
   </dependencies>
@@ -63,6 +70,17 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
       </plugin>
+
+      <!-- ✅ Plugin per eseguire la main class -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <mainClass>it.gruppo2b.domotica.MultiServer</mainClass>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 

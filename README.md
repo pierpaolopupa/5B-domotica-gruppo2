@@ -27,4 +27,4 @@ esempio di formato json:
         valore: (boolean)
     }
 
-bozza non so nemmeno se e' corretto sto formato di json, da correggere se ci sono eventuali cambiamenti.
+bozza non so nemmeno se e' corretto sto formato di json, da correggere se ci sono eventuali cambiamenti.v
