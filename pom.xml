@@ -20,7 +20,6 @@
   </properties>
 
   <dependencies>
-
     <!-- JUnit 5 (Jupiter) -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -42,11 +41,30 @@
       <version>3.0.0-alpha1</version>
     </dependency>
 
-    <!-- ✅ Libreria JSON -->
+    <!-- Libreria JSON -->
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
       <version>20231013</version>
+    </dependency>
+
+    <!-- JavaFX -->
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>21.0.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-graphics</artifactId>
+      <version>21.0.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-base</artifactId>
+      <version>21.0.2</version>
     </dependency>
 
   </dependencies>
@@ -71,7 +89,7 @@
         <version>3.2.5</version>
       </plugin>
 
-      <!-- ✅ Plugin per eseguire la main class -->
+      <!-- Exec plugin per eseguire la main class -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -79,6 +97,29 @@
         <configuration>
           <mainClass>it.gruppo2b.domotica.MultiServer</mainClass>
         </configuration>
+      </plugin>
+
+      <!-- Shade plugin per creare jar eseguibile -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>it.gruppo2b.domotica.Serenya</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
     </plugins>

@@ -1,1 +1,21 @@
+# Maven
 /target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA / Eclipse / VS Code
+/.idea/
+/*.iml
+/.project
+/.classpath
+/.settings/
+/.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jar compilati
+*.jar
