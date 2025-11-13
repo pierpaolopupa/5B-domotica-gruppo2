@@ -6,23 +6,11 @@ I client devono identificarsi e inviare le informazioni tramite formato json al 
 il server deve salvare le informazioni in un file di log con timestamp.
 
 esempio di formato json:
-    
-    temperatura{
-        id: "sensor_1",
+{
+    {
+        id: "1",
+        nome: "sensor_1"
         tipo: "temperatura",
         valore: (double)
     }
-
-    movimento{
-        id: "sensor_2",
-        tipo: "movimento",
-        valore: true/false
-        zona: giardino | cucina | bagno
-        ora: 
-    }
-
-    contatto porta{
-        id: "sensor_3",
-        tipo: "contatto_porta",
-        valore: (boolean)
-    }
+}
