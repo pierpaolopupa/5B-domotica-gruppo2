@@ -129,9 +129,9 @@ public class Gui extends Application {
         subLabel.setFont(Font.font("Segoe UI", 16));
         subLabel.setTextFill(Color.web("#B0D8FF"));
 
-        Button btnClient = styledGoldButton("Configura Client");
-        Button btnServer = styledGoldButton("Configura Server");
-        Button btnBoth = styledGoldButton("Configura Client + Server");
+        Button btnClient = styledNeoButton("Configura Client");
+        Button btnServer = styledNeoButton("Configura Server");
+        Button btnBoth = styledNeoButton("Configura Client + Server");
 
         HBox buttons = new HBox(20, btnClient, btnServer, btnBoth);
         buttons.setAlignment(Pos.CENTER);
@@ -156,30 +156,75 @@ public class Gui extends Application {
         btnBoth.setOnAction(e -> openBothWindow());
     }
 
-    private Button styledGoldButton(String text) {
+    private Button styledNeoButton(String text) {
         Button b = new Button(text);
-        b.setFont(Font.font("Segoe UI", 16));
-        b.setTextFill(Color.web("#111827"));
-        b.setStyle("-fx-background-color: linear-gradient(#fff9e6, #ffd36b); -fx-background-radius: 8; -fx-padding: 10 20 10 20; -fx-border-radius: 8; -fx-border-color: rgba(255,215,0,0.6); -fx-border-width: 2;");
-        DropShadow glow = new DropShadow();
-        glow.setColor(Color.web("#FFD54A"));
-        glow.setRadius(10);
-        b.setOnMouseEntered(ev -> {
-            b.setEffect(glow);
-            b.setStyle("-fx-background-color: linear-gradient(#fff9e6, #ffd36b); -fx-background-radius: 8; -fx-padding: 10 20 10 20; -fx-border-radius: 8; -fx-border-color: rgba(255,215,0,1); -fx-border-width: 2;");
-        });
-        b.setOnMouseExited(ev -> {
-            b.setEffect(null);
-            b.setStyle("-fx-background-color: linear-gradient(#fff9e6, #ffd36b); -fx-background-radius: 8; -fx-padding: 10 20 10 20; -fx-border-radius: 8; -fx-border-color: rgba(255,215,0,0.6); -fx-border-width: 2;");
+        b.setFont(Font.font("Segoe UI Semibold", 18));
+        b.setTextFill(Color.web("#E6F7FF"));
+
+        b.setStyle("" +
+                "-fx-background-radius: 18;" +
+                "-fx-background-color: rgba(0,0,0,0.35);" +
+                "-fx-padding: 14 30 14 30;" +
+                "-fx-border-radius: 18;" +
+                "-fx-border-width: 2;" +
+                "-fx-border-color: linear-gradient(#4FFBDF, #2B95FF);" +
+                "-fx-effect: dropshadow(gaussian, rgba(40,160,255,0.45), 16, 0.4, 0, 0);" +
+                "-fx-cursor: hand;"
+        );
+
+        Timeline breathing = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(b.opacityProperty(), 1.0),
+                        new KeyValue(b.scaleXProperty(), 1.0),
+                        new KeyValue(b.scaleYProperty(), 1.0)
+                ),
+                new KeyFrame(Duration.seconds(1.8),
+                        new KeyValue(b.opacityProperty(), 0.88),
+                        new KeyValue(b.scaleXProperty(), 1.03),
+                        new KeyValue(b.scaleYProperty(), 1.03)
+                )
+        );
+        breathing.setAutoReverse(true);
+        breathing.setCycleCount(Animation.INDEFINITE);
+        breathing.play();
+
+        b.setOnMouseEntered(e -> {
+            b.setStyle("" +
+                    "-fx-background-radius: 18;" +
+                    "-fx-background-color: rgba(0, 40, 70, 0.55);" +
+                    "-fx-padding: 14 32 14 32;" +
+                    "-fx-border-radius: 18;" +
+                    "-fx-border-width: 3;" +
+                    "-fx-border-color: linear-gradient(#7BFFFF, #4FC3FF);" +
+                    "-fx-effect: dropshadow(gaussian, rgba(90,225,255,0.85), 28, 0.65, 0, 0);" +
+                    "-fx-cursor: hand;"
+            );
         });
 
-        Timeline tl = new Timeline(
-                new KeyFrame(Duration.ZERO, new KeyValue(b.opacityProperty(), 1.0)),
-                new KeyFrame(Duration.seconds(1.4), new KeyValue(b.opacityProperty(), 0.92))
-        );
-        tl.setAutoReverse(true);
-        tl.setCycleCount(Animation.INDEFINITE);
-        tl.play();
+        b.setOnMouseExited(e -> {
+            b.setStyle("" +
+                    "-fx-background-radius: 18;" +
+                    "-fx-background-color: rgba(0,0,0,0.35);" +
+                    "-fx-padding: 14 30 14 30;" +
+                    "-fx-border-radius: 18;" +
+                    "-fx-border-width: 2;" +
+                    "-fx-border-color: linear-gradient(#4FFBDF, #2B95FF);" +
+                    "-fx-effect: dropshadow(gaussian, rgba(40,160,255,0.45), 16, 0.4, 0, 0);" +
+                    "-fx-cursor: hand;"
+            );
+        });
+
+        b.setOnMousePressed(e -> {
+            b.setScaleX(0.92);
+            b.setScaleY(0.92);
+            b.setEffect(new DropShadow(25, Color.web("#34D1FF")));
+        });
+
+        b.setOnMouseReleased(e -> {
+            b.setScaleX(1.0);
+            b.setScaleY(1.0);
+            b.setEffect(new DropShadow(16, Color.web("rgba(40,160,255,0.45)")));
+        });
 
         return b;
     }
@@ -196,7 +241,7 @@ public class Gui extends Application {
 
         TextField input = new TextField();
         input.setPromptText("Messaggio da inviare al server...");
-        Button send = styledGoldButton("Invia");
+        Button send = styledNeoButton("Invia");
         HBox sendBox = new HBox(10, input, send);
         sendBox.setAlignment(Pos.CENTER);
 
