@@ -9,7 +9,7 @@ import it.gruppo2b.domotica.Serenya;
 
 public class DisKinServer {
 	
-	private static final Logger log = LogManager.getLogger(Serenya.class);
+	private static final Logger log = LogManager.getLogger(DisKinServer.class);
 
 
     private static final int TCP_PORT = 5000;
