@@ -1,95 +1,172 @@
 package it.gruppo2b.domotica.server;
 
-import it.gruppo2b.domotica.net.MessageListener;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+import java.io.*;
+import java.net.*;
+import java.util.concurrent.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class DisKinServer {
+
+    private static final Logger log = LogManager.getLogger(DisKinServer.class);
+
     private final int tcpPort;
     private final int udpPort;
     private final ExecutorService pool;
-    private volatile boolean running = true;
-    private MessageListener listener;
 
-    public DisKinServer(int tcpPort, int udpPort, int poolSize) {
-        this.tcpPort = tcpPort;
-        this.udpPort = udpPort;
-        this.pool = Executors.newFixedThreadPool(poolSize);
+    private volatile boolean running = false;
+    private ServerSocket tcpServerSocket;
+    private DatagramSocket udpSocket;
+
+    private ServerListener listener;
+
+    public interface ServerListener {
+        void onMessage(String from, String message);
     }
 
-    public void setListener(MessageListener listener) {
+    public void setListener(ServerListener listener) {
         this.listener = listener;
     }
 
+    public DisKinServer(int tcpPort, int udpPort, int threads) {
+        this.tcpPort = tcpPort;
+        this.udpPort = udpPort;
+        this.pool = Executors.newFixedThreadPool(threads);
+    }
+
     public void start() {
-        new Thread(this::startTCPServer, "Server-TCP-Acceptor").start();
-        new Thread(this::startUDPServer, "Server-UDP").start();
+        running = true;
+
+        startTCP();
+        startUDP();
+    }
+
+    private void startTCP() {
+        pool.execute(() -> {
+            try (ServerSocket server = new ServerSocket(tcpPort)) {
+                tcpServerSocket = server;
+                log.info("TCP server listening on " + tcpPort);
+
+                while (running) {
+                    Socket client = server.accept();
+                    pool.execute(() -> handleTCPClient(client));
+                }
+
+            } catch (IOException e) {
+                if (running) log.error("TCP server error: ", e);
+            }
+        });
+    }
+
+    private void handleTCPClient(Socket client) {
+        try (
+                BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                PrintWriter out = new PrintWriter(client.getOutputStream(), true)
+        ) {
+            String line;
+            while (running && (line = in.readLine()) != null) {
+
+                if (listener != null) {
+                    listener.onMessage(client.getRemoteSocketAddress().toString(), line);
+                }
+
+                String jsonResponse = processMessage(line);
+
+                out.println(jsonResponse);
+            }
+
+        } catch (Exception ignored) {}
+    }
+
+    private String processMessage(String json) {
+        try {
+            String type = extract(json, "type");
+            String value = extract(json, "value");
+
+            String result;
+
+            switch (type) {
+                case "TEMPERATURA" -> result = "Temperatura ricevuta: " + value;
+                case "MOVIMENTO" -> result = "Movimento rilevato: " + value;
+                case "UMIDITA" -> result = "Umidità ricevuta: " + value;
+                default -> result = "Tipo sconosciuto: " + type;
+            }
+
+            return
+                    "{ \"status\": \"OK\", \"ack\": \"" + result + "\", \"timestamp\": " + System.currentTimeMillis() + " }";
+
+        } catch (Exception e) {
+            return "{ \"status\": \"ERROR\", \"msg\": \"JSON non valido\" }";
+        }
+    }
+
+    private String extract(String json, String key) {
+        String k = "\"" + key + "\":";
+        int start = json.indexOf(k);
+        if (start == -1) return "";
+        start = json.indexOf("\"", start + k.length()) + 1;
+        int end = json.indexOf("\"", start);
+        return json.substring(start, end);
+    }
+
+    private void startUDP() {
+        pool.execute(() -> {
+            try (DatagramSocket socket = new DatagramSocket(udpPort)) {
+                udpSocket = socket;
+                log.info("UDP server listening on " + udpPort);
+
+                byte[] buffer = new byte[1024];
+
+                while (running) {
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                    socket.receive(packet);
+
+                    String msg = new String(packet.getData(), 0, packet.getLength());
+
+                    if (listener != null) {
+                        listener.onMessage(packet.getAddress() + ":" + packet.getPort(), msg);
+                    }
+
+                    if (msg.toUpperCase().contains("TEMPERATURA")) {
+                        double temp = Double.parseDouble(msg.substring(5));
+                        if (temp > 35) {
+                            String coolCmd = "COOL";
+                            byte[] coolBytes = coolCmd.getBytes();
+                            DatagramPacket coolPacket = new DatagramPacket(
+                                    coolBytes, coolBytes.length,
+                                    packet.getAddress(), packet.getPort()
+                            );
+                            socket.send(coolPacket);
+                        }
+                    }
+
+                    String response = "{ \"udpAck\": \"" + msg + "\" }";
+                    byte[] respBytes = response.getBytes();
+
+                    DatagramPacket resp = new DatagramPacket(
+                            respBytes, respBytes.length,
+                            packet.getAddress(), packet.getPort()
+                    );
+                    socket.send(resp);
+                }
+
+            } catch (IOException e) {
+                if (running) log.error("UDP server error", e);
+            }
+        });
     }
 
     public void stop() {
         running = false;
+
+        try {
+            if (tcpServerSocket != null) tcpServerSocket.close();
+        } catch (Exception ignored) {}
+
+        try {
+            if (udpSocket != null) udpSocket.close();
+        } catch (Exception ignored) {}
+
         pool.shutdownNow();
-    }
-
-    private void startTCPServer() {
-        try (ServerSocket serverSocket = new ServerSocket(tcpPort)) {
-            notify("INFO", "TCP attivo sulla porta " + tcpPort);
-            while (running) {
-                Socket clientSocket = serverSocket.accept();
-                notify("INFO", "Connessione da " + clientSocket.getRemoteSocketAddress());
-                pool.submit(() -> handleTCPClient(clientSocket));
-            }
-        } catch (IOException e) {
-            notify("ERROR", "TCP error: " + e.getMessage());
-        }
-    }
-
-    private void handleTCPClient(Socket socket) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                String from = socket.getInetAddress().getHostAddress() + ":" + socket.getPort();
-                notify("TCP " + from, line);
-                out.println("{\"status\":\"OK\",\"msg\":\"Ricevuto\"}");
-            }
-        } catch (IOException e) {
-            notify("ERROR", "client handler error: " + e.getMessage());
-        }
-    }
-
-    private void startUDPServer() {
-        try (DatagramSocket socket = new DatagramSocket(udpPort)) {
-            notify("INFO", "UDP attivo sulla porta " + udpPort);
-            byte[] buffer = new byte[2048];
-            while (running) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-                String from = packet.getAddress().getHostAddress() + ":" + packet.getPort();
-                notify("UDP " + from, message);
-
-                String response = "{\"status\":\"OK\",\"msg\":\"Ricevuto UDP\"}";
-                byte[] responseBytes = response.getBytes();
-                DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
-                socket.send(responsePacket);
-            }
-        } catch (IOException e) {
-            notify("ERROR", "UDP server error: " + e.getMessage());
-        }
-    }
-
-    private void notify(String from, String message) {
-        if (listener != null) listener.onMessage(from, message);
-        else System.out.println("[" + from + "] " + message);
     }
 }

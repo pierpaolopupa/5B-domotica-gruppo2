@@ -6,6 +6,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class DisKinClient {
 
@@ -13,17 +16,26 @@ public class DisKinClient {
     private final String host;
     private final int tcpPort;
     private final int udpPort;
+    private final String clientType;
+    private final String clientName;
     private MessageListener listener;
+
+    private double temperatura = 25.0;
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    private boolean cooling = false;
 
     private Socket tcpSocket;
     private BufferedReader tcpIn;
     private PrintWriter tcpOut;
     private DatagramSocket udpSocket;
 
-    public DisKinClient(String host, int tcpPort, int udpPort) {
+    public DisKinClient(String host, int tcpPort, int udpPort, String clientType, String clientName) {
         this.host = host;
         this.tcpPort = tcpPort;
         this.udpPort = udpPort;
+        this.clientType = clientType;
+        this.clientName = clientName;
+        startAutoBehavior();
     }
 
     public void setListener(MessageListener listener) {
@@ -48,7 +60,11 @@ public class DisKinClient {
 
     public void sendTCP(String message) {
         if (tcpOut != null) {
-            tcpOut.println(message);
+            String json =
+                    "{ \"client\": \"" + clientName + "\", " +
+                            "\"type\": \"" + clientType + "\", " +
+                            "\"value\": \"" + message + "\" }";
+            tcpOut.println(json);
             if (listener != null) listener.onMessage("SENT-TCP", message);
         } else {
             if (listener != null) listener.onMessage("ERROR", "TCP non connesso");
@@ -60,12 +76,69 @@ public class DisKinClient {
             try {
                 String response;
                 while ((response = tcpIn.readLine()) != null) {
+                    if (response.equals("COOL")) {
+                        startCooling();
+                    }
                     if (listener != null) listener.onMessage("TCP " + tcpSocket.getRemoteSocketAddress(), response);
                 }
             } catch (IOException e) {
                 if (listener != null) listener.onMessage("INFO", "TCP listener chiuso");
             }
         }, "TCP-Client-Listener").start();
+    }
+
+    private void startAutoBehavior() {
+
+        switch (clientType.toUpperCase()) {
+
+            case "TEMPERATURA":
+                scheduler.scheduleAtFixedRate(() -> {
+                    if (!cooling) {
+                        sendUDP("TEMP:" + temperatura);
+                    }
+                }, 0, 15, TimeUnit.SECONDS);
+                break;
+
+            case "MOVIMENTO":
+                scheduler.scheduleAtFixedRate(() -> {
+
+                    String msg = Math.random() < 0.5 ?
+                            "Nessun movimento rilevato" :
+                            "Rilevato movimento";
+
+                    sendUDP(msg);
+
+                }, 0, 20, TimeUnit.SECONDS);
+                break;
+
+            case "CONTATTO PORTA":
+                scheduler.scheduleAtFixedRate(() -> {
+
+                    String msg = Math.random() < 0.5 ?
+                            "Porta chiusa" :
+                            "Porta aperta";
+
+                    sendUDP(msg);
+
+                }, 0, 60, TimeUnit.SECONDS);
+                break;
+        }
+    }
+
+    public void startCooling() {
+        if (cooling) return;
+        cooling = true;
+
+        scheduler.scheduleAtFixedRate(() -> {
+            temperatura -= 0.05;
+
+            sendUDP("TEMP:" + String.format("%.2f", temperatura));
+
+            if (temperatura <= 30) {
+                cooling = false;
+            }
+
+        }, 0, 500, TimeUnit.MILLISECONDS);
     }
 
     public boolean initializeUDP() {

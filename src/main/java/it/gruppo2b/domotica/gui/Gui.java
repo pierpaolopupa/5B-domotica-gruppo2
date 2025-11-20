@@ -151,7 +151,7 @@ public class Gui extends Application {
         mainStage.setMinHeight(600);
         mainStage.show();
 
-        btnClient.setOnAction(e -> openClientWindow());
+        btnClient.setOnAction(e -> openClientConfigurator());
         btnServer.setOnAction(e -> openServerWindow());
         btnBoth.setOnAction(e -> openBothWindow());
     }
@@ -229,7 +229,7 @@ public class Gui extends Application {
         return b;
     }
 
-    private void openClientWindow() {
+    private void openClientWindow(String clientName, String clientType) {
         Stage win = new Stage();
         win.setTitle("SERENYA - Client");
         Image bg = new Image(getClass().getResource("/images/sfondoBase.png").toExternalForm());
@@ -258,8 +258,12 @@ public class Gui extends Application {
         win.setScene(scene);
         win.show();
 
-        DisKinClient client = new DisKinClient("127.0.0.1", 5000, 5001);
-        client.setListener((from, message) -> Platform.runLater(() -> console.appendText("[" + from + "] " + message + "\n")));
+        DisKinClient client = new DisKinClient("127.0.0.1", 5000, 5001, clientType, clientName);
+        client.setListener((from, message) ->
+                Platform.runLater(() ->
+                        console.appendText("[" + clientName + "/" + clientType + "] " + message + "\n")
+                )
+        );
         client.connectTCP();
         client.initializeUDP();
 
@@ -306,63 +310,213 @@ public class Gui extends Application {
         TextInputDialog dialog = new TextInputDialog("2");
         dialog.setHeaderText("Quanti client vuoi creare automaticamente?");
         dialog.showAndWait().ifPresent(str -> {
+
             int n;
             try { n = Integer.parseInt(str); } catch (NumberFormatException ex) { n = 1; }
+            if (n < 1) n = 1;
 
-            Stage win = new Stage();
-            win.setTitle("SERENYA - Client + Server");
+            Stage cfg = new Stage();
+            cfg.setTitle("Configurazione Client Multipli");
+
             Image bg = new Image(getClass().getResource("/images/sfondoBase.png").toExternalForm());
             ImageView bgView = new ImageView(bg);
             bgView.setPreserveRatio(false);
 
-            TextArea serverConsole = createConsoleArea();
-            serverConsole.setPrefHeight(200);
-            serverConsole.appendText("Server console\n");
+            VBox list = new VBox(15);
+            list.setPadding(new Insets(20));
+            list.setAlignment(Pos.CENTER);
 
-            GridPane grid = new GridPane();
-            grid.setHgap(10);
-            grid.setVgap(10);
+            List<TextField> names = new ArrayList<>();
+            List<ComboBox<String>> types = new ArrayList<>();
 
-            List<DisKinClient> clients = new ArrayList<>();
-            AtomicInteger col = new AtomicInteger(0);
+            Label title = new Label("CONFIGURAZIONE " + n + " CLIENT");
+            title.setFont(Font.font("Segoe UI Semibold", 28));
+            title.setTextFill(Color.web("#B0E8FF"));
+
+            list.getChildren().add(title);
+
             for (int i = 0; i < n; i++) {
-                TextArea cConsole = createConsoleArea();
-                cConsole.setPrefSize(300, 200);
-                cConsole.appendText("Client #" + (i+1) + "\n");
-                grid.add(cConsole, col.getAndIncrement(), 0);
+                HBox row = new HBox(15);
+                row.setAlignment(Pos.CENTER);
 
-                DisKinClient client = new DisKinClient("127.0.0.1", 5000, 5001);
-                int idx = i+1;
-                client.setListener((from, message) -> Platform.runLater(() -> cConsole.appendText("[" + from + "] " + message + "\n")));
-                client.connectTCP();
-                client.initializeUDP();
-                clients.add(client);
+                Label lbl = new Label("Client #" + (i+1));
+                lbl.setTextFill(Color.web("#D0EEFF"));
+                lbl.setFont(Font.font("Segoe UI", 16));
+
+                TextField name = new TextField("CLIENT_" + (i+1));
+                name.setPrefWidth(150);
+
+                ComboBox<String> type = new ComboBox<>();
+                type.getItems().addAll("TEMPERATURA", "MOVIMENTO", "UMIDITA", "CONTATTO PORTA");
+                type.setValue("TEMPERATURA");
+
+                names.add(name);
+                types.add(type);
+
+                row.getChildren().addAll(lbl, name, type);
+                list.getChildren().add(row);
             }
 
-            VBox right = new VBox(10, new Label("Server (mini)"), serverConsole);
-            right.setPadding(new Insets(10));
-            right.setPrefWidth(400);
+            Button btnStart = styledNeoButton("AVVIA SERVER + CLIENT");
+            Button btnCancel = styledNeoButton("ANNULLA");
 
-            BorderPane main = new BorderPane();
-            main.setCenter(grid);
-            main.setRight(right);
+            HBox hBtns = new HBox(20, btnStart, btnCancel);
+            hBtns.setAlignment(Pos.CENTER);
+            list.getChildren().add(hBtns);
 
-            StackPane root = new StackPane(bgView, main);
-            Scene scene = new Scene(root, 1200, 700);
-            bgView.fitWidthProperty().bind(scene.widthProperty());
-            bgView.fitHeightProperty().bind(scene.heightProperty());
+            StackPane rootCfg = new StackPane(bgView, list);
+            Scene sceneCfg = new Scene(rootCfg, 600, 120 + n * 70);
 
-            win.setScene(scene);
-            win.show();
+            bgView.fitWidthProperty().bind(sceneCfg.widthProperty());
+            bgView.fitHeightProperty().bind(sceneCfg.heightProperty());
 
-            DisKinServer server = new DisKinServer(5000, 5001, 8);
-            server.setListener((from, message) -> Platform.runLater(() -> serverConsole.appendText("[" + from + "] " + message + "\n")));
-            server.start();
+            cfg.setScene(sceneCfg);
+            cfg.show();
 
-            win.setOnCloseRequest(e -> {
-                server.stop();
-                clients.forEach(DisKinClient::close);
+            btnCancel.setOnAction(e -> cfg.close());
+
+            int finalN = n;
+            btnStart.setOnAction(e -> {
+                cfg.close();
+
+                Stage win = new Stage();
+                win.setTitle("SERENYA - Client + Server");
+
+                Image bg2 = new Image(getClass().getResource("/images/sfondoBase.png").toExternalForm());
+                ImageView bgView2 = new ImageView(bg2);
+                bgView2.setPreserveRatio(false);
+
+                TextArea serverConsole = createConsoleArea();
+                serverConsole.appendText("Server console\n");
+
+                GridPane grid = new GridPane();
+                grid.setHgap(10);
+                grid.setVgap(10);
+
+                List<DisKinClient> clients = new ArrayList<>();
+
+                AtomicInteger col = new AtomicInteger(0);
+                for (int i = 0; i < finalN; i++) {
+
+                    String clientName = names.get(i).getText();
+                    String clientType = types.get(i).getValue();
+
+                    TextArea cConsole = createConsoleArea();
+                    cConsole.setPrefWidth(300);
+                    cConsole.setPrefHeight(200);
+                    cConsole.appendText(clientName + " (" + clientType + ")\n");
+
+                    grid.add(cConsole, col.getAndIncrement(), 0);
+
+                    DisKinClient client = new DisKinClient(
+                            "127.0.0.1",
+                            5000,
+                            5001,
+                            clientType,
+                            clientName
+                    );
+
+                    client.setListener((from, message) ->
+                            Platform.runLater(() ->
+                                    cConsole.appendText("[" + from + "] " + message + "\n")
+                            )
+                    );
+
+                    client.connectTCP();
+                    client.initializeUDP();
+
+                    clients.add(client);
+                }
+
+                VBox right = new VBox(10, new Label("Server (mini)"), serverConsole);
+                right.setPadding(new Insets(10));
+                right.setPrefWidth(400);
+
+                BorderPane main = new BorderPane();
+                main.setCenter(grid);
+                main.setRight(right);
+
+                StackPane root = new StackPane(bgView2, main);
+                Scene scene = new Scene(root, 1200, 700);
+
+                bgView2.fitWidthProperty().bind(scene.widthProperty());
+                bgView2.fitHeightProperty().bind(scene.heightProperty());
+
+                win.setScene(scene);
+                win.show();
+
+                DisKinServer server = new DisKinServer(5000, 5001, 8);
+                server.setListener((from, message) ->
+                        Platform.runLater(() ->
+                                serverConsole.appendText("[" + from + "] " + message + "\n")
+                        )
+                );
+                server.start();
+
+                win.setOnCloseRequest(e2 -> {
+                    server.stop();
+                    clients.forEach(DisKinClient::close);
+                });
             });
+        });
+    }
+
+    private void openClientConfigurator() {
+
+        Stage cfg = new Stage();
+        cfg.setTitle("Configura Client");
+
+        Image bg = new Image(getClass().getResource("/images/sfondoBase.png").toExternalForm());
+        ImageView bgView = new ImageView(bg);
+        bgView.setPreserveRatio(false);
+        bgView.setSmooth(true);
+
+        Label title = new Label("CONFIGURAZIONE CLIENT");
+        title.setFont(Font.font("Segoe UI Semibold", 32));
+        title.setTextFill(Color.web("#B0E8FF"));
+
+        TextField txtNome = new TextField();
+        txtNome.setPromptText("Nome client (es: SensorCam1)");
+
+        ComboBox<String> comboTipo = new ComboBox<>();
+        comboTipo.getItems().addAll(
+                "TEMPERATURA",
+                "UMIDITA",
+                "MOVIMENTO",
+                "CONTATTO PORTA"
+        );
+        comboTipo.setValue("TEMPERATURA");
+
+        Button btnAvvia = styledNeoButton("AVVIA CLIENT");
+        Button btnAnnulla = styledNeoButton("ANNULLA");
+
+        HBox btnBox = new HBox(20, btnAvvia, btnAnnulla);
+        btnBox.setAlignment(Pos.CENTER);
+
+        VBox content = new VBox(20, title, txtNome, comboTipo, btnBox);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(20));
+        content.setMaxWidth(400);
+
+        StackPane root = new StackPane(bgView, content);
+        Scene scene = new Scene(root, 500, 400);
+
+        bgView.fitWidthProperty().bind(scene.widthProperty());
+        bgView.fitHeightProperty().bind(scene.heightProperty());
+
+        cfg.setScene(scene);
+        cfg.show();
+
+        btnAnnulla.setOnAction(e -> cfg.close());
+
+        btnAvvia.setOnAction(e -> {
+            String nome = txtNome.getText().trim();
+            String tipo = comboTipo.getValue();
+
+            if (nome.isBlank()) nome = "CLIENT_" + (int)(Math.random()*999);
+
+            cfg.close();
+            openClientWindow(nome, tipo);
         });
     }
 
