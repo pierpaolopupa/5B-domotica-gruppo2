@@ -2,7 +2,14 @@ package it.gruppo2b.domotica.server;
 import java.io.*;
 import java.net.*;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import it.gruppo2b.domotica.Serenya;
+
 public class DisKinServer {
+	
+	private static final Logger log = LogManager.getLogger(Serenya.class);
 
 
     private static final int TCP_PORT = 5000;
@@ -23,6 +30,7 @@ public class DisKinServer {
             while (true) {
 
                 Socket clientSocket = serverSocket.accept();
+                log.info("Connesso");
 
 
                 new Thread(() -> handleTCPClient(clientSocket)).start();
